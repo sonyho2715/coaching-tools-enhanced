@@ -913,12 +913,12 @@ className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-
 </div>
 </div>
 
-{!showOnboarding && (
-  <NextStepSuggestion
-    currentSection="home"
-    readinessScore={totalReadinessScore}
-    onNavigate={setActiveSection}
-  />
+<NextStepSuggestion
+  currentSection="home"
+  readinessScore={totalReadinessScore}
+  onNavigate={setActiveSection}
+/>
+</>
 )}
 </div>
 );
