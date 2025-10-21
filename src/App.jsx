@@ -11,8 +11,11 @@ import AnalyticsDashboard from './components/AnalyticsDashboard';
 import ExportControls from './components/ExportControls';
 import FontSizeControl from './components/FontSizeControl';
 import ThemeToggle from './components/ThemeToggle';
+import OnboardingWizard from './components/OnboardingWizard';
+import NextStepSuggestion from './components/NextStepSuggestion';
 import { calculateWheelAverage, calculateOverallProgress, getReadinessLevel } from './utils/calculations';
-import { Menu, X } from 'lucide-react';
+import { getReadinessRouting, isToolAllowed, getToolLockMessage } from './utils/readinessRouting';
+import { Menu, X, Lock } from 'lucide-react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
@@ -53,6 +56,7 @@ const coaching = useCoaching();
 // Local UI state
 const [activeSection, setActiveSection] = useState('home');
 const [sidebarOpen, setSidebarOpen] = useState(false);
+const [showOnboarding, setShowOnboarding] = useState(true);
 
 // Destructure from context for easier access
 const {
@@ -470,24 +474,109 @@ critic: [
 // RENDER FUNCTIONS
 // ============================================
 
-const renderHome = () => (
-<div className="space-y-6">
-<div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-lg shadow-lg">
-<h1 className="text-3xl font-bold mb-4">🎯 Công Cụ Đánh Giá Khách Hàng</h1>
-<p className="text-xl mb-2">Hệ Thống Toàn Diện Cho Coach - Enhanced v3.0</p>
-<p className="opacity-90">Xác định sẵn sàng, điểm nghẽn, trách nhiệm và công cụ phù hợp</p>
-</div>
+const renderHome = () => {
+  // Calculate readiness score
+  const totalReadinessScore = Object.values(readinessScores).flat().reduce((a, b) => a + b, 0);
 
-<div className="bg-red-50 border-2 border-red-400 rounded-lg p-6">
-<h3 className="text-lg font-bold text-red-800 mb-3">⚠️ DISCLAIMER / TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM</h3>
-<div className="space-y-2 text-sm text-red-900">
-<p className="font-semibold">© Coach Sony Ho - All Rights Reserved</p>
-<p><strong>Bản quyền:</strong> Công cụ này thuộc bản quyền của Coach Sony Ho. Nghiêm cấm sao chép, phân phối, hoặc sử dụng cho mục đích thương mại mà không có sự cho phép bằng văn bản.</p>
-<p><strong>Mục đích sử dụng:</strong> Công cụ này được thiết kế để hỗ trợ các coach chuyên nghiệp trong quá trình đánh giá khách hàng. Không thay thế tư vấn y tế, tâm lý, hoặc pháp lý chuyên môn.</p>
-<p><strong>Trách nhiệm:</strong> Người sử dụng công cụ phải có đào tạo coaching/NLP phù hợp. Coach Sony Ho không chịu trách nhiệm về việc sử dụng sai mục đích hoặc kết quả không mong muốn.</p>
-<p><strong>Liên hệ:</strong> Để được cấp phép sử dụng hoặc đào tạo, vui lòng liên hệ trực tiếp với Coach Sony Ho.</p>
-</div>
-</div>
+  // Handle onboarding flow selection
+  const handleFlowSelection = (flow) => {
+    setShowOnboarding(false);
+    if (flow === 'newClient') {
+      setActiveSection('personalhistory');
+    } else if (flow === 'smartAssistant') {
+      setActiveSection('problemidentifier');
+    } else if (flow === 'existingClient') {
+      setActiveSection('followup');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Show onboarding wizard on first visit */}
+      {showOnboarding ? (
+        <>
+          <OnboardingWizard onSelectFlow={handleFlowSelection} />
+
+          <div className="text-center">
+            <button
+              onClick={() => setShowOnboarding(false)}
+              className="text-sm text-gray-600 hover:text-gray-800 underline"
+            >
+              Bỏ qua - Tôi đã quen với công cụ này
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-lg shadow-lg">
+            <h1 className="text-3xl font-bold mb-4">🎯 Công Cụ Đánh Giá Khách Hàng</h1>
+            <p className="text-xl mb-2">Hệ Thống Toàn Diện Cho Coach - Enhanced v3.0</p>
+            <p className="opacity-90">Xác định sẵn sàng, điểm nghẽn, trách nhiệm và công cụ phù hợp</p>
+          </div>
+
+          {/* FEATURED: Smart Assistant - Tool Recommender */}
+          <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 border-3 border-purple-400 rounded-xl p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold px-4 py-2 rounded-full shadow-lg text-sm">
+              ⭐ RECOMMENDED
+            </div>
+
+            <div className="flex items-start space-x-4 mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <Lightbulb className="w-8 h-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-purple-900 mb-2">💡 Trợ Lý Thông Minh (Smart Assistant)</h2>
+                <p className="text-purple-800 text-lg mb-4">
+                  Không chắc nên dùng công cụ nào? Hệ thống AI sẽ tự động gợi ý công cụ phù hợp nhất dựa trên vấn đề của khách hàng!
+                </p>
+
+                <div className="grid md:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-white rounded-lg p-4 shadow">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Search className="w-5 h-5 text-purple-600" />
+                      <h4 className="font-bold text-gray-800">Bước 1: Xác Định Vấn Đề</h4>
+                    </div>
+                    <p className="text-sm text-gray-700">Mô tả vấn đề của khách hàng, phân loại và đánh giá mức độ khẩn cấp</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 shadow">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Target className="w-5 h-5 text-pink-600" />
+                      <h4 className="font-bold text-gray-800">Bước 2: Nhận Gợi Ý</h4>
+                    </div>
+                    <p className="text-sm text-gray-700">Nhận 3-4 công cụ phù hợp nhất + cấu trúc buổi coaching chi tiết</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setActiveSection('problemidentifier')}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center space-x-3 transition shadow-lg hover:shadow-xl text-lg"
+                >
+                  <Zap className="w-6 h-6" />
+                  <span>Bắt Đầu Với Trợ Lý Thông Minh →</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Disclaimer */}
+          <details className="bg-red-50 border-2 border-red-400 rounded-lg p-6">
+            <summary className="text-lg font-bold text-red-800 cursor-pointer hover:text-red-900">
+              ⚠️ DISCLAIMER / TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM (Click để xem)
+            </summary>
+            <div className="space-y-2 text-sm text-red-900 mt-4">
+              <p className="font-semibold">© Coach Sony Ho - All Rights Reserved</p>
+              <p><strong>Bản quyền:</strong> Công cụ này thuộc bản quyền của Coach Sony Ho. Nghiêm cấm sao chép, phân phối, hoặc sử dụng cho mục đích thương mại mà không có sự cho phép bằng văn bản.</p>
+              <p><strong>Mục đích sử dụng:</strong> Công cụ này được thiết kế để hỗ trợ các coach chuyên nghiệp trong quá trình đánh giá khách hàng. Không thay thế tư vấn y tế, tâm lý, hoặc pháp lý chuyên môn.</p>
+              <p><strong>Trách nhiệm:</strong> Người sử dụng công cụ phải có đào tạo coaching/NLP phù hợp. Coach Sony Ho không chịu trách nhiệm về việc sử dụng sai mục đích hoặc kết quả không mong muốn.</p>
+              <p><strong>Liên hệ:</strong> Để được cấp phép sử dụng hoặc đào tạo, vui lòng liên hệ trực tiếp với Coach Sony Ho.</p>
+            </div>
+          </details>
+        </>
+      )}
+
+      {!showOnboarding && (
+        <>
 
 <div className="border-2 border-blue-300 rounded-lg p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
 <h3 className="text-xl font-bold text-blue-800 mb-4">👤 Thông Tin Khách Hàng</h3>
@@ -823,6 +912,14 @@ className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-
 </p>
 </div>
 </div>
+
+{!showOnboarding && (
+  <NextStepSuggestion
+    currentSection="home"
+    readinessScore={totalReadinessScore}
+    onNavigate={setActiveSection}
+  />
+)}
 </div>
 );
 
@@ -923,6 +1020,12 @@ className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
 <p className="text-sm font-semibold">Khuyến nghị: Hoãn lại hoặc tham khảo chuyên gia khác</p>
 </div>
 </div>
+
+<NextStepSuggestion
+  currentSection="readiness"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 </div>
   );
@@ -1056,6 +1159,12 @@ rows="3"
 <li>Nếu khách hàng kháng cự, hãy chậm lại và xây dựng rapport</li>
 </ul>
 </div>
+
+<NextStepSuggestion
+  currentSection="mapupdate"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 );
 
@@ -1363,6 +1472,12 @@ return gap > 0 ? (
 <li>"Bạn có thể làm gì NGAY HÔM NAY để cải thiện 1 điểm?"</li>
 </ul>
 </div>
+
+<NextStepSuggestion
+  currentSection="wheel"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 );
 };
@@ -1540,6 +1655,12 @@ rows="4"
 <p className="text-sm text-gray-700">Ảnh hưởng như thế nào?</p>
 </div>
 </div>
+
+<NextStepSuggestion
+  currentSection="problemidentifier"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 </div>
 );
@@ -1617,6 +1738,12 @@ return (
 <p className="text-gray-600">⬅️ Vui lòng hoàn thành "Xác Định Vấn Đề" trước để nhận gợi ý công cụ</p>
 </div>
 )}
+
+<NextStepSuggestion
+  currentSection="toolrecommender"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 );
 };
@@ -1890,6 +2017,12 @@ rows="2"
 />
 </div>
 ))}
+
+<NextStepSuggestion
+  currentSection="values"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 </div>
 );
@@ -1986,6 +2119,12 @@ className="w-full p-3 border-2 border-dashed border-purple-300 rounded-lg hover:
 >
 + Thêm Niềm Tin
 </button>
+
+<NextStepSuggestion
+  currentSection="beliefs"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 </div>
 );
@@ -2247,6 +2386,12 @@ className="w-full p-3 border-2 border-dashed border-blue-300 rounded-lg hover:bg
 >
 + Thêm Mục Tiêu
 </button>
+
+<NextStepSuggestion
+  currentSection="goals"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 </div>
 );
@@ -2659,6 +2804,12 @@ rows="6"
 />
 </div>
 </div>
+
+<NextStepSuggestion
+  currentSection="personalhistory"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 );
 
@@ -3003,6 +3154,12 @@ rows="3"
 <li>Có thể kết hợp với các công cụ khác như Timeline hoặc Values Work</li>
 </ul>
 </div>
+
+<NextStepSuggestion
+  currentSection="som"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 );
 
@@ -3197,6 +3354,12 @@ const renderVAKAD = () => {
           <li>Remember: This is an indicator of preference, not a limitation. People use all systems.</li>
         </ul>
       </div>
+
+      <NextStepSuggestion
+        currentSection="vakad"
+        readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+        onNavigate={setActiveSection}
+      />
     </div>
   );
 };
@@ -3329,6 +3492,12 @@ className="w-full p-2 border border-gray-300 rounded-lg text-sm"
 />
 </div>
 </div>
+
+<NextStepSuggestion
+  currentSection="reframing"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 </div>
 );
@@ -3497,6 +3666,12 @@ className="w-full p-4 border border-gray-300 rounded-lg resize-none"
 rows="3"
 />
 </div>
+
+<NextStepSuggestion
+  currentSection="timeline"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 );
 
@@ -5543,6 +5718,12 @@ className="text-blue-600 hover:text-blue-800 text-sm font-semibold"
 <p>✅ <strong>Supervision:</strong> Thảo luận case khó với mentor/supervisor</p>
 <p>✅ <strong>CPD:</strong> Học hỏi liên tục, cập nhật kỹ năng</p>
 </div>
+
+<NextStepSuggestion
+  currentSection="worksheet"
+  readinessScore={Object.values(readinessScores).flat().reduce((a, b) => a + b, 0)}
+  onNavigate={setActiveSection}
+/>
 </div>
 </div>
 );
@@ -5994,22 +6175,34 @@ overflow-hidden
 {sections.map((section, index) => {
 const Icon = section.icon;
 const isGroupEnd = ['readiness', 'goals', 'vakad', 'metaprograms', 'email'].includes(section.id);
+const totalReadinessScore = Object.values(readinessScores).flat().reduce((a, b) => a + b, 0);
+const isAllowed = isToolAllowed(section.id, totalReadinessScore);
+const lockMessage = !isAllowed ? getToolLockMessage(section.id, totalReadinessScore) : null;
 
 return (
 <div key={section.id}>
 <button
 onClick={() => {
+if (!isAllowed) {
+alert(`🔒 ${lockMessage.message}\n\n💡 ${lockMessage.tip}\n\nĐiểm hiện tại: ${totalReadinessScore}\nĐiểm yêu cầu: ${lockMessage.minScore}`);
+return;
+}
 setActiveSection(section.id);
 setSidebarOpen(false);
 }}
-className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${
+className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition ${
 activeSection === section.id
 ? 'bg-blue-600 text-white shadow-md'
-: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+: isAllowed
+? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+: 'text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 cursor-not-allowed'
 }`}
 >
+<div className="flex items-center space-x-3">
 <Icon className="w-5 h-5" />
 <span className="text-base font-medium">{section.name}</span>
+</div>
+{!isAllowed && <Lock className="w-4 h-4" />}
 </button>
 {isGroupEnd && index < sections.length - 1 && (
 <div className="border-t border-gray-200 dark:border-gray-600 my-2 mx-2"></div>
