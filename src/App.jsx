@@ -572,11 +572,6 @@ const renderHome = () => {
               <p><strong>Liên hệ:</strong> Để được cấp phép sử dụng hoặc đào tạo, vui lòng liên hệ trực tiếp với Coach Sony Ho.</p>
             </div>
           </details>
-        </>
-      )}
-
-      {!showOnboarding && (
-        <>
 
 <div className="border-2 border-blue-300 rounded-lg p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
 <h3 className="text-xl font-bold text-blue-800 mb-4">👤 Thông Tin Khách Hàng</h3>
