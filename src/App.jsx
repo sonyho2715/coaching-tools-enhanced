@@ -13,6 +13,8 @@ import FontSizeControl from './components/FontSizeControl';
 import ThemeToggle from './components/ThemeToggle';
 import OnboardingWizard from './components/OnboardingWizard';
 import NextStepSuggestion from './components/NextStepSuggestion';
+import ViewSwitcher from './components/ViewSwitcher';
+import CoacheeDashboard from './pages/coachee/CoacheeDashboard';
 import { calculateWheelAverage, calculateOverallProgress, getReadinessLevel } from './utils/calculations';
 import { getReadinessRouting, isToolAllowed, getToolLockMessage } from './utils/readinessRouting';
 import { sections } from './utils/sectionsConfig';
@@ -58,6 +60,7 @@ const coaching = useCoaching();
 const [activeSection, setActiveSection] = useState('home');
 const [sidebarOpen, setSidebarOpen] = useState(false);
 const [showOnboarding, setShowOnboarding] = useState(true);
+const [currentView, setCurrentView] = useState('coach'); // 'coach' or 'client'
 
 // Destructure from context for easier access
 const {
@@ -6067,8 +6070,24 @@ rows="2"
 // Include other render functions (renderHome, renderQuick, etc.)
 // For brevity, I'll just add the main component return
 
+// If client view, show coachee dashboard
+if (currentView === 'client') {
+return (
+<>
+<ViewSwitcher currentView={currentView} onViewChange={setCurrentView} />
+<CoacheeDashboard />
+<Analytics />
+<SpeedInsights />
+</>
+);
+}
+
+// Coach view
 return (
 <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex">
+{/* View Switcher */}
+<ViewSwitcher currentView={currentView} onViewChange={setCurrentView} />
+
 {/* Session Timer & Clock */}
 <AutoSaveIndicator lastSaved={lastSaved} isSaving={isSaving} sessionTimer={sessionTimer} />
 
