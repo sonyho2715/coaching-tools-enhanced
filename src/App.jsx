@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import * as Icons from './icons';
 import html2pdf from 'html2pdf.js';
 import { useCoaching } from './contexts/CoachingContext';
@@ -13,6 +14,10 @@ import FontSizeControl from './components/FontSizeControl';
 import ThemeToggle from './components/ThemeToggle';
 import OnboardingWizard from './components/OnboardingWizard';
 import NextStepSuggestion from './components/NextStepSuggestion';
+import PricingPage from './components/PricingPage';
+import UpgradeModal from './components/UpgradeModal';
+import LandingPage from './components/LandingPage';
+import { TIERS } from './config/pricing';
 import { calculateWheelAverage, calculateOverallProgress, getReadinessLevel } from './utils/calculations';
 import { getReadinessRouting, isToolAllowed, getToolLockMessage } from './utils/readinessRouting';
 import { sections } from './utils/sectionsConfig';
@@ -51,6 +56,26 @@ const {
 } = Icons;
 
 const CoachingAssessmentTool = () => {
+// Check authentication status
+const { isSignedIn, isLoaded } = useUser();
+
+// Show loading state while Clerk loads
+if (!isLoaded) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-600">Đang tải...</p>
+      </div>
+    </div>
+  );
+}
+
+// Show landing page for unauthenticated users
+if (!isSignedIn) {
+  return <LandingPage />;
+}
+
 // Use coaching context for state management
 const coaching = useCoaching();
 
@@ -58,6 +83,11 @@ const coaching = useCoaching();
 const [activeSection, setActiveSection] = useState('home');
 const [sidebarOpen, setSidebarOpen] = useState(false);
 const [showOnboarding, setShowOnboarding] = useState(true);
+
+// Upgrade modal state
+const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+const [upgradeFeature, setUpgradeFeature] = useState(null);
+const [upgradeRequiredTier, setUpgradeRequiredTier] = useState(null);
 
 // Destructure from context for easier access
 const {
@@ -6131,7 +6161,9 @@ return (
 <button
 onClick={() => {
 if (!isAllowed) {
-alert(`🔒 ${lockMessage.message}\n\n💡 ${lockMessage.tip}\n\nĐiểm hiện tại: ${totalReadinessScore}\nĐiểm yêu cầu: ${lockMessage.minScore}`);
+setUpgradeFeature('advancedNLP');
+setUpgradeRequiredTier(TIERS.PROFESSIONAL);
+setUpgradeModalOpen(true);
 return;
 }
 setActiveSection(section.id);
@@ -6172,6 +6204,7 @@ All Rights Reserved
 <div className="flex-1 overflow-auto bg-white dark:bg-gray-900">
 <div className="p-6 md:p-10 max-w-6xl mx-auto text-base leading-relaxed mt-16 md:mt-0">
 {activeSection === 'home' && renderHome()}
+{activeSection === 'pricing' && <PricingPage />}
 {activeSection === 'sessiontimer' && renderSessionTimer()}
 {activeSection === 'personalhistory' && renderPersonalHistory()}
 {activeSection === 'problemidentifier' && renderProblemIdentifier()}
@@ -6201,6 +6234,12 @@ All Rights Reserved
 </div>
 <Analytics />
 <SpeedInsights />
+<UpgradeModal
+  isOpen={upgradeModalOpen}
+  onClose={() => setUpgradeModalOpen(false)}
+  feature={upgradeFeature}
+  requiredTier={upgradeRequiredTier}
+/>
 </div>
 );
 };
